@@ -15,6 +15,7 @@ from std_srvs.srv import SetBool, SetBoolRequest
 class DuckiebotAvoidanceNode(DTROS):
     """
     Combines Duckiebot detection, distance estimation, and collision avoidance.
+    Includes a basic lane-switching obstacle avoidance maneuver.
     """
 
     def __init__(self, node_name):
@@ -60,12 +61,13 @@ class DuckiebotAvoidanceNode(DTROS):
             "/{}/duckiebot_distance_node/distance".format(self.host), Float32, queue_size=1
         )
 
-        #Service proxy (calling line following to disable
-        self.lane_following_control = rospy.ServiceProxy('lane_following_control', SetBool)
+        #Service proxy (calling line following to disable - commented out for now as unclear if needed in this context)
+        #self.lane_following_control = rospy.ServiceProxy('lane_following_control', SetBool)
 
         #Timer variables (added)
         self.side_distance_timer = None
         self.turning_right = False
+        self.obstacle_avoidance_active = False # Flag to prevent re-triggering avoidance
 
         self.log("Duckiebot Avoidance Node Initialized.")
 
@@ -158,7 +160,7 @@ class DuckiebotAvoidanceNode(DTROS):
                 distCoeffs=self.pcm.distortionCoeffs(),
                 flags=cv2.SOLVEPNP_ITERATIVE #added this flag
             )
-            
+
             if not success:
                 return None  # Pose estimation failed
 
@@ -196,8 +198,8 @@ class DuckiebotAvoidanceNode(DTROS):
 
         Args:
             distance (`float`): The distance detected by the Duckiebot
-        
-        
+
+
         """
 
         if distance is None:
@@ -205,23 +207,13 @@ class DuckiebotAvoidanceNode(DTROS):
             self.control_wheels(0.2, 0)
 
         elif distance <= self.stop_distance:
-            #Too close, stop.
-            rospy.logwarn("Too close! Stopping. Performing side step.")
+            #Too close, stop and perform obstacle avoidance maneuver.
+            rospy.logwarn("Too close! Stopping and initiating obstacle avoidance.")
             self.control_wheels(0, 0)
-            #If at the robot and close enough, now, take the robot to perform the turn
-            if not self.turning_right:
-                self.turning_right = True
-                rospy.logwarn("Turning Left") #First turn left
-                self.side_distance_timer = rospy.Timer(rospy.Duration(self.side_distance_timer_period), self.turn_right_callback, oneshot=True) #turn one direction first
-                self.control_wheels(0, 0.7)
-                #call the service to stop code
-                rospy.wait_for_service('lane_following_control')
 
-                try:
-                    control_lane = rospy.ServiceProxy('lane_following_control', SetBool)
-                    control_lane(False) #Turn off line following, might be uncessecary
-                except rospy.ServiceException as e:
-                    print("Service call failed: %s"%e)
+            if not self.obstacle_avoidance_active: #Only start avoidance once
+                self.obstacle_avoidance_active = True #Set flag
+                self.avoid_obstacle() # Call the lane switching maneuver
 
         elif distance <= self.min_distance_to_react:
             #Approaching, slow down.
@@ -234,15 +226,59 @@ class DuckiebotAvoidanceNode(DTROS):
             self.control_wheels(0.2, 0) #full speed!
             rospy.logwarn("No bot close by")
 
-    def turn_right_callback(self, event): #called
+    def avoid_obstacle(self):
+        """
+        Performs a predefined lane-switching maneuver to avoid an obstacle.
+        This is a simplified example using fixed durations and speeds.
+        """
+        rospy.loginfo("Obstacle avoidance maneuver started...")
+
+        # Step 1: Move diagonally left to enter the parallel lane
+        rospy.loginfo("Step 1: Moving diagonally left...")
+        self.control_wheels(0.2, 0.7)  # Move slightly forward while turning left
+        rospy.sleep(1.5)
+        self.control_wheels(0.2, 0)  # Drive straight briefly
+        rospy.sleep(1.5)
+
+        # Step 2: Adjust to the lane by slightly turning right
+        rospy.loginfo("Step 2: Adjusting to the lane...")
+        self.control_wheels(0, -0.7)
+        rospy.sleep(1.2)
+
+        rospy.loginfo("Lane switch complete. Following new lane for a bit...")
+        rospy.sleep(5)  # Follow lane for a while (in the 'other' lane)
+
+        # Step 3: Perform a U-turn (right turn → left turn) to return
+        rospy.loginfo("Step 3: Initiating U-turn...")
+        self.control_wheels(0, -0.7)  # Turn right
+        rospy.sleep(1.5)
+        self.control_wheels(0, 0.7)  # Turn left
+        rospy.sleep(1.5)
+
+        # Step 4: Move diagonally right to return to original lane
+        rospy.loginfo("Step 4: Moving diagonally right to return...")
+        self.control_wheels(0.2, -0.7)  # Move slightly forward while turning right
+        rospy.sleep(1.5)
+        self.control_wheels(0.2, 0)  # Drive straight briefly
+        rospy.sleep(1.5)
+
+        # Step 5: Adjust to align with the lane
+        rospy.loginfo("Step 5: Adjusting to align with original lane...")
+        self.control_wheels(0, 0.7)
+        rospy.sleep(1.2)
+
+        rospy.loginfo("Returned to original lane. Resuming normal operation.")
+        self.obstacle_avoidance_active = False # Reset flag to allow avoidance again
+
+    def turn_right_callback(self, event): #called - not used in the obstacle avoidance maneuver anymore
         rospy.logwarn("Turning Right") #turn right
         self.control_wheels(0, -0.7) #call to turn right
         #call turn around again
         self.side_distance_timer = rospy.Timer(rospy.Duration(self.side_distance_timer_period), self.start_lane_following_callback, oneshot=True) #oneshot called again
 
-    def start_lane_following_callback(self, event): #called
+    def start_lane_following_callback(self, event): #called - not used in the obstacle avoidance maneuver anymore
         """
-        Function to start lane following again.
+        Function to start lane following again. - not used in the obstacle avoidance maneuver anymore
         Note: This is never actually called as part of the final product.
         """
         rospy.wait_for_service('lane_following_control')
