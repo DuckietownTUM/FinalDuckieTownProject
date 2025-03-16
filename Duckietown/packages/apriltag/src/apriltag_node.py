@@ -260,13 +260,13 @@ class apriltag_node(DTROS):
             if tag_color == "LEFT":
                 print("Turning left!")
                 self.send_drive_command(0.2, 2.0)  # Adjust speed and omega for turning left
-                rospy.sleep(1.5)  # Sleep to allow turn
+                rospy.sleep(2)  # Sleep to allow turn
                 self.send_drive_command(0.2, 0.0)  # Move forward after turn
 
             elif tag_color == "RIGHT":
                 print("Turning right!")
                 self.send_drive_command(0.2, -2.0)  # Adjust speed and omega for turning right
-                rospy.sleep(1.5)  # Sleep to allow turn
+                rospy.sleep(1)  # Sleep to allow turn
                 self.send_drive_command(0.2, 0.0)  # Move forward after turn
 
             elif tag_color in ["RED", "GREEN", "BLUE"]:
