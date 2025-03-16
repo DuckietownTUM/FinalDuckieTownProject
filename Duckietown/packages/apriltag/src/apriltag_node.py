@@ -43,19 +43,17 @@ class apriltag_node(DTROS):
         #no detection
         self.curr_col = "WHITE"
         self.sign_col_map = {
-            #blue = T-intersection
-            153: "BLUE",
-            58: "BLUE",
-            11: "BLUE",
-            62: "BLUE",
-            #red = stop sign
-            24: "RED",
-            26: "RED",
-            #green = UofA Tag
-            57: "GREEN",
-            200: "GREEN",
-            94: "GREEN",
-            93: "GREEN"
+            # Blue = T-intersection
+            153: "BLUE", 58: "BLUE", 11: "BLUE", 62: "BLUE",
+            # Red = Stop sign
+            24: "RED", 26: "RED",
+            # Green = UofA Tag
+            57: "GREEN", 200: "GREEN", 94: "GREEN", 93: "GREEN",
+            # Yellow = Turn left
+            30: "LEFT",
+            # Purple = Turn right
+            31: "RIGHT"
+
         }
 
         self.p = 0
@@ -209,6 +207,7 @@ class apriltag_node(DTROS):
 
 
     def detect_tag(self):
+        
         if(not self.safeToRunProgram):
             return
 
@@ -255,10 +254,21 @@ class apriltag_node(DTROS):
         self.no_tag_count = 0 #if we found a tag
 
         for tag in tags:
-            # extract the bounding box (x, y)-coordinates for the AprilTag
-            # and convert each of the (x, y)-coordinate pairs to integers
-            (ptA, ptB, ptC, ptD) = tag.corners
-            diff = abs(ptA[0] - ptB[0])
-            ptB = (int(ptB[0]), int(ptB[1]))
-            ptC = (int(ptC[0]), int(ptC[1]))
-            
+            tag_id = tag.tag_id
+            tag_color = self.sign_to_col(tag_id)
+
+            if tag_color == "LEFT":
+                print("Turning left!")
+                self.send_drive_command(0.2, 2.0)  # Adjust speed and omega for turning left
+                rospy.sleep(1.5)  # Sleep to allow turn
+                self.send_drive_command(0.2, 0.0)  # Move forward after turn
+
+            elif tag_color == "RIGHT":
+                print("Turning right!")
+                self.send_drive_command(0.2, -2.0)  # Adjust speed and omega for turning right
+                rospy.sleep(1.5)  # Sleep to allow turn
+                self.send_drive_command(0.2, 0.0)  # Move forward after turn
+
+            elif tag_color in ["RED", "GREEN", "BLUE"]:
+                self.change_led_to(tag_color)
+    
