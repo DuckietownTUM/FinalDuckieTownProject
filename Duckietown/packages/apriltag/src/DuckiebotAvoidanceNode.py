@@ -235,37 +235,28 @@ class DuckiebotAvoidanceNode(DTROS):
 
         # Step 1: Move diagonally left to enter the parallel lane
         rospy.loginfo("Step 1: Moving diagonally left...")
-        self.control_wheels(0.2, 0.7)  # Move slightly forward while turning left
-        rospy.sleep(1.5)
+        self.control_wheels(0, 0.7)  # Move slightly forward while turning left
+        rospy.sleep(0.5)
         self.control_wheels(0.2, 0)  # Drive straight briefly
-        rospy.sleep(1.5)
+        rospy.sleep(0.3)
 
         # Step 2: Adjust to the lane by slightly turning right
         rospy.loginfo("Step 2: Adjusting to the lane...")
         self.control_wheels(0, -0.7)
-        rospy.sleep(1.2)
+        rospy.sleep(0.5)
 
         rospy.loginfo("Lane switch complete. Following new lane for a bit...")
-        rospy.sleep(5)  # Follow lane for a while (in the 'other' lane)
+        rospy.sleep(3)  # Follow lane for a while (in the 'other' lane)
 
         # Step 3: Perform a U-turn (right turn → left turn) to return
         rospy.loginfo("Step 3: Initiating U-turn...")
         self.control_wheels(0, -0.7)  # Turn right
-        rospy.sleep(1.5)
-        self.control_wheels(0, 0.7)  # Turn left
-        rospy.sleep(1.5)
-
-        # Step 4: Move diagonally right to return to original lane
-        rospy.loginfo("Step 4: Moving diagonally right to return...")
-        self.control_wheels(0.2, -0.7)  # Move slightly forward while turning right
-        rospy.sleep(1.5)
+        rospy.sleep(0.3)
         self.control_wheels(0.2, 0)  # Drive straight briefly
-        rospy.sleep(1.5)
+        rospy.sleep(0.3)
+        self.control_wheels(0, 0.7)  # Turn left
+        rospy.sleep(0.3)
 
-        # Step 5: Adjust to align with the lane
-        rospy.loginfo("Step 5: Adjusting to align with original lane...")
-        self.control_wheels(0, 0.7)
-        rospy.sleep(1.2)
 
         rospy.loginfo("Returned to original lane. Resuming normal operation.")
         self.obstacle_avoidance_active = False # Reset flag to allow avoidance again
