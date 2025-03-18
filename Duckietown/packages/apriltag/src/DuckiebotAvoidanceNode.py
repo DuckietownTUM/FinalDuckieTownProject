@@ -235,10 +235,10 @@ class DuckiebotAvoidanceNode(DTROS):
 
         # Step 1: Move diagonally left to enter the parallel lane
         rospy.loginfo("Step 1: Moving diagonally left...")
-        self.control_wheels(0, 0.7)  # Move slightly forward while turning left
-        rospy.sleep(0.5)
+        self.control_wheels(0, 0.7)  # turning left
+        rospy.sleep(0.7)
         self.control_wheels(0.2, 0)  # Drive straight briefly
-        rospy.sleep(0.3)
+        rospy.sleep(1)
 
         # Step 2: Adjust to the lane by slightly turning right
         rospy.loginfo("Step 2: Adjusting to the lane...")
@@ -253,7 +253,7 @@ class DuckiebotAvoidanceNode(DTROS):
         self.control_wheels(0, -0.7)  # Turn right
         rospy.sleep(0.3)
         self.control_wheels(0.2, 0)  # Drive straight briefly
-        rospy.sleep(0.3)
+        rospy.sleep(0.7)
         self.control_wheels(0, 0.7)  # Turn left
         rospy.sleep(0.3)
 
